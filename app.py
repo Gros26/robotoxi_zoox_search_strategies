@@ -8,6 +8,23 @@ from collections import deque
 #• 4 si es un pasajero
 #• 5 si es el destino
 
+class Node():
+    def __init__(self, row, column):
+        self.parent = None
+        self.row = row
+        self.column = column
+        self.operator = None
+        self.passengers = 0
+
+    def get_state(self):
+        return (self.row, self.column, self.passengers)
+
+    def print_parent(self):
+        return self.parent
+    
+    def get_position(self):
+        return (self.row, self.column)
+
 
 class City():
     def __init__(self, filename):
@@ -26,6 +43,8 @@ class City():
         if contents.count('5') != 1:
             raise Exception('Debe haber solo un destino')    
         
+        self.goal_passengers = contents.count('4')
+
         #determine width and height of the city
         contents = contents.splitlines() # this returns an array
         self.height = len(contents) # the height is the number of lines
@@ -48,7 +67,7 @@ class City():
                         self.passengers.append((i, j))
                         row.append('4')
                     elif contents[i][j] == '5':
-                        self.goal = (i, j) # save my destination point
+                        self.goal = (i, j, self.goal_passengers) # save my destination point
                         row.append('5')
                     else:
                         row.append(contents[i][j])
@@ -117,50 +136,68 @@ class Robotaxi():
     def bfs(self):
         print(f"Empezo {self.left} , {self.right}, {self.down}, {self.up}")
         queue = deque()
-        queue.append(self.position())
-        set = {self.position()}
+        initial_node = Node(*(self.position())) 
+        queue.append(initial_node)
+        set = {initial_node.get_state()}
         count = 0
 
         while(True):
             count += 1
             print(count)
-            print(queue)
 
             if not queue: 
                 raise Exception(f"No hay solución y {count}")
             
-            self.move(*(queue.popleft()))
+            node_to_expand = queue.popleft()
+            self.move(*(node_to_expand.get_position()))
             self.update_sensors()
 
-            if self.position() == self.city.goal:
-                return print(f"Lo encontroooo {self.position}")
+            if node_to_expand.get_state() == self.city.goal:
+                return print(f"Lo encontroooo {self.position} y el nodo es {node_to_expand}, {node_to_expand.get_position()}, y el estado: {node_to_expand.get_state()}")
+
+            if node_to_expand.get_position() in self.city.passengers:
+                node_to_expand.passengers += 1
 
             paths = []
             if self.right:
                 movement = self.find_position("right")
-                if movement not in set:
-                    paths.append(movement)
-                set.add(movement)
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = node.parent.passengers
+                node.operator = "right"
+                if node.get_state() not in set:
+                    paths.append(node)
+                set.add(node.get_state())
             if self.left:
                 movement = self.find_position("left")
-                if movement not in set:
-                    paths.append(movement)
-                set.add(movement)
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = node.parent.passengers
+                node.operator = "left"
+                if node.get_state() not in set:
+                    paths.append(node)
+                set.add(node.get_state())
             if self.up:
                 movement = self.find_position("up")
-                if movement not in set:
-                    paths.append(movement)
-                set.add(movement)
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = node.parent.passengers
+                node.operator = "up"
+                if node.get_state() not in set:
+                    paths.append(node)
+                set.add(node.get_state())
             if self.down:
                 movement = self.find_position("down")
-                if movement not in set:
-                    paths.append(movement)
-                set.add(movement)
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = node.parent.passengers
+                node.operator = "down"
+                if node.get_state() not in set:
+                    paths.append(node)
+                set.add(node.get_state())
 
             queue.extend(paths)
             
-
-
 
 
 
