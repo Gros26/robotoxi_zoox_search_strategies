@@ -14,16 +14,17 @@ class Node():
         self.row = row
         self.column = column
         self.operator = None
-        self.passengers = 0
+        self.passengers = set()
 
     def get_state(self):
-        return (self.row, self.column, self.passengers)
+        return (self.row, self.column, frozenset(self.passengers))
 
     def print_parent(self):
         return self.parent
     
     def get_position(self):
         return (self.row, self.column)
+
 
 
 class City():
@@ -67,7 +68,7 @@ class City():
                         self.passengers.append((i, j))
                         row.append('4')
                     elif contents[i][j] == '5':
-                        self.goal = (i, j, self.goal_passengers) # save my destination point
+                        self.goal_destination = (i, j) # save my destination point
                         row.append('5')
                     else:
                         row.append(contents[i][j])
@@ -75,6 +76,8 @@ class City():
                     row.append('0')
             self.matrix.append(row) #this is a 2D array
     
+        self.goal = (self.goal_destination[0], self.goal_destination[1], set(self.passengers))
+
     def print(self):
         print()
         for i in range(self.height):
@@ -138,7 +141,7 @@ class Robotaxi():
         queue = deque()
         initial_node = Node(*(self.position())) 
         queue.append(initial_node)
-        set = {initial_node.get_state()}
+        visited = {initial_node.get_state()}
         count = 0
 
         while(True):
@@ -153,51 +156,64 @@ class Robotaxi():
             self.update_sensors()
 
             if node_to_expand.get_state() == self.city.goal:
-                return print(f"Lo encontroooo {self.position} y el nodo es {node_to_expand}, {node_to_expand.get_position()}, y el estado: {node_to_expand.get_state()}")
+                print(self.get_route(node_to_expand))
+                return print(f"Lo encontroooo {self.position()} y el nodo es {node_to_expand}, {node_to_expand.get_position()}, y el estado: {node_to_expand.get_state()}")
 
             if node_to_expand.get_position() in self.city.passengers:
-                node_to_expand.passengers += 1
+                node_to_expand.passengers.add(node_to_expand.get_position())
 
             paths = []
             if self.right:
                 movement = self.find_position("right")
                 node = Node(*(movement))
                 node.parent = node_to_expand
-                node.passengers = node.parent.passengers
+                node.passengers = set(node.parent.passengers)
                 node.operator = "right"
-                if node.get_state() not in set:
+                if node.get_state() not in visited:
                     paths.append(node)
-                set.add(node.get_state())
+                visited.add(node.get_state())
             if self.left:
                 movement = self.find_position("left")
                 node = Node(*(movement))
                 node.parent = node_to_expand
-                node.passengers = node.parent.passengers
+                node.passengers = set(node.parent.passengers)
                 node.operator = "left"
-                if node.get_state() not in set:
+                if node.get_state() not in visited:
                     paths.append(node)
-                set.add(node.get_state())
+                visited.add(node.get_state())
             if self.up:
                 movement = self.find_position("up")
                 node = Node(*(movement))
                 node.parent = node_to_expand
-                node.passengers = node.parent.passengers
+                node.passengers = set(node.parent.passengers)
                 node.operator = "up"
-                if node.get_state() not in set:
+                if node.get_state() not in visited:
                     paths.append(node)
-                set.add(node.get_state())
+                visited.add(node.get_state())
             if self.down:
                 movement = self.find_position("down")
                 node = Node(*(movement))
                 node.parent = node_to_expand
-                node.passengers = node.parent.passengers
+                node.passengers = set(node.parent.passengers)
                 node.operator = "down"
-                if node.get_state() not in set:
+                if node.get_state() not in visited:
                     paths.append(node)
-                set.add(node.get_state())
+                visited.add(node.get_state())
 
             queue.extend(paths)
-            
+
+        
+    
+    def get_route(self, node: Node):
+        route = []
+        while node.parent != None:
+            route.append(node.get_state())
+            node = node.parent
+
+        route.append(node.get_state())
+        route.reverse()
+
+        return route
 
 
 
