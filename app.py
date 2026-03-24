@@ -82,7 +82,7 @@ class City():
         print()
         for i in range(self.height):
             for j in range(self.width):
-                if (i, j) == self.goal:
+                if (i, j) == self.goal_destination:
                     print("X", end="")
                 elif (i, j) == self.start:
                     print("R", end="")
@@ -100,13 +100,18 @@ class City():
              
 
 class Robotaxi():
-    def __init__(self, y, x, city):
+    def __init__(self, y, x, city, search=None):
         self.column = x
         self.row = y
         self.city = city
         self.matrix = city.matrix
         self.update_sensors()
-        self.bfs()
+        if search:
+            match search:
+                case "bfs":
+                    return self.bfs()
+                case "dfs":
+                    return self.dfs()
 
     def position(self):
         return (self.row, self.column)
@@ -137,7 +142,6 @@ class Robotaxi():
 
 
     def bfs(self):
-        print(f"Empezo {self.left} , {self.right}, {self.down}, {self.up}")
         queue = deque()
         initial_node = Node(*(self.position())) 
         queue.append(initial_node)
@@ -146,10 +150,9 @@ class Robotaxi():
 
         while(True):
             count += 1
-            print(count)
 
             if not queue: 
-                raise Exception(f"No hay solución y {count}")
+                raise Exception(f"No hay solución, los pasos hasta aqui fueron: {count}")
             
             node_to_expand = queue.popleft()
             self.move(*(node_to_expand.get_position()))
@@ -157,7 +160,7 @@ class Robotaxi():
 
             if node_to_expand.get_state() == self.city.goal:
                 print(self.get_route(node_to_expand))
-                return print(f"Lo encontroooo {self.position()} y el nodo es {node_to_expand}, {node_to_expand.get_position()}, y el estado: {node_to_expand.get_state()}")
+                return print(f"Lo encontrooooo: {node_to_expand.get_state()}, expandio {count} nodos")
 
             if node_to_expand.get_position() in self.city.passengers:
                 node_to_expand.passengers.add(node_to_expand.get_position())
@@ -202,6 +205,67 @@ class Robotaxi():
 
             queue.extend(paths)
 
+    def dfs(self):
+        stack = []
+        initial_node = Node(*(self.position())) 
+        stack.append(initial_node)
+        visited = {initial_node.get_state()}
+        count = 0
+
+        while(True):
+            count += 1
+
+            if not stack: 
+                raise Exception(f"No hay solución, los pasos hasta aqui fueron: {count}")
+            
+            node_to_expand = stack.pop()
+            self.move(*(node_to_expand.get_position()))
+            self.update_sensors()
+
+            if node_to_expand.get_state() == self.city.goal:
+                print(self.get_route(node_to_expand))
+                return print(f"Lo encontrooooo: {node_to_expand.get_state()}, expandio {count} nodos")
+
+            if node_to_expand.get_position() in self.city.passengers:
+                node_to_expand.passengers.add(node_to_expand.get_position())
+
+
+            if self.right:
+                movement = self.find_position("right")
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = set(node.parent.passengers)
+                node.operator = "right"
+                if node.get_state() not in visited:
+                    stack.append(node)
+                visited.add(node.get_state())
+            if self.left:
+                movement = self.find_position("left")
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = set(node.parent.passengers)
+                node.operator = "left"
+                if node.get_state() not in visited:
+                    stack.append(node)
+                visited.add(node.get_state())
+            if self.up:
+                movement = self.find_position("up")
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = set(node.parent.passengers)
+                node.operator = "up"
+                if node.get_state() not in visited:
+                    stack.append(node)
+                visited.add(node.get_state())
+            if self.down:
+                movement = self.find_position("down")
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = set(node.parent.passengers)
+                node.operator = "down"
+                if node.get_state() not in visited:
+                    stack.append(node)
+                visited.add(node.get_state())
         
     
     def get_route(self, node: Node):
@@ -220,4 +284,10 @@ class Robotaxi():
 city = City("city1.txt")
 print(city.matrix)
 city.print()
-robotaxi = Robotaxi(*(city.start), city)
+print("Robotaxi 1")
+robotaxi = Robotaxi(*(city.start), city, "bfs")
+print("Robotaxi 2")
+robotaxi2 = Robotaxi(*(city.start), city, "dfs")
+print("Robotaxi 3")
+robotaxi3 = Robotaxi(*(city.start), city)
+
