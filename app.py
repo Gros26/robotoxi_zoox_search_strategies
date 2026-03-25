@@ -1,5 +1,6 @@
 from pathlib import Path
 from collections import deque
+import heapq
 
 #• 0 si es una casilla libre (flujo vehicular bajo)
 #• 1 si es un muro
@@ -112,6 +113,8 @@ class Robotaxi():
                     return self.bfs()
                 case "dfs":
                     return self.dfs()
+                case "ucs":
+                    return self.ucs()
 
     def position(self):
         return (self.row, self.column)
@@ -266,6 +269,90 @@ class Robotaxi():
                 if node.get_state() not in visited:
                     stack.append(node)
                 visited.add(node.get_state())
+
+    def ucs(self): #uniform cost search
+        queue = []
+        initial_node = Node(*(self.position())) 
+        count_heapq = 0  #This is a counter for tie-breaker
+        count = 0 #This is the node expand counter
+        priority = 0 #This is the algorith counter
+        """ uso de heapq
+        # Agregar elementos (prioridad, dato)
+        heapq.heappush(cola, (3, "Tarea baja"))
+        heapq.heappush(cola, (1, "Tarea crítica"))
+        heapq.heappush(cola, (2, "Tarea media"))
+
+        # Extraer el elemento de mayor prioridad (el valor numérico más bajo)
+        prioridad, tarea = heapq.heappop(cola)
+        print(f"Procesando: {tarea} (Prioridad: {prioridad})")
+        # Salida: Procesando: Tarea crítica (Prioridad: 1)"""
+        heapq.heappush(queue, count_heapq, (priority, initial_node))
+        count_heapq += 1
+        visited = {initial_node.get_state()}
+
+        while True:
+            count += 1
+
+            if not queue: 
+                raise Exception(f"No hay solución, los pasos hasta aqui fueron: {count}")
+            
+            priority, node_to_expand = heapq.heappop(queue)
+            self.move(*(node_to_expand.get_position()))
+            self.update_sensors()
+
+            if node_to_expand.get_state() == self.city.goal:
+                print(self.get_route(node_to_expand))
+                return print(f"Lo encontrooooo: {node_to_expand.get_state()}, expandio {count} nodos")
+
+            if node_to_expand.get_position() in self.city.passengers:
+                node_to_expand.passengers.add(node_to_expand.get_position())
+
+            #Esto deberia ir en otro lado, ya que aqui cambio cuando me muevo y deberia cambiar antes de moverme
+            #ademas aqui esto es global entonces todos usaran esto y no un camino propio por decirlo asi
+            #en pocas palabras hasta aqui masomenos va la implementacion
+            if node_to_expand.get_position() in self.city.high_flow:
+                priority += 3
+            else:
+                priority += 1
+
+            if self.right:
+                movement = self.find_position("right")
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = set(node.parent.passengers)
+                node.operator = "right"
+                if node.get_state() not in visited:
+                    heapq.heappush(queue, (priority, node))
+                visited.add(node.get_state())
+            if self.left:
+                movement = self.find_position("left")
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = set(node.parent.passengers)
+                node.operator = "left"
+                if node.get_state() not in visited:
+                    heapq.heappush(queue, (priority, node))
+                visited.add(node.get_state())
+            if self.up:
+                movement = self.find_position("up")
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = set(node.parent.passengers)
+                node.operator = "up"
+                if node.get_state() not in visited:
+                    heapq.heappush(queue, (priority, node))
+                visited.add(node.get_state())
+            if self.down:
+                movement = self.find_position("down")
+                node = Node(*(movement))
+                node.parent = node_to_expand
+                node.passengers = set(node.parent.passengers)
+                node.operator = "down"
+                if node.get_state() not in visited:
+                    heapq.heappush(queue, (priority, node))
+                visited.add(node.get_state())
+
+
         
     
     def get_route(self, node: Node):
@@ -290,4 +377,6 @@ print("Robotaxi 2")
 robotaxi2 = Robotaxi(*(city.start), city, "dfs")
 print("Robotaxi 3")
 robotaxi3 = Robotaxi(*(city.start), city)
+print("Robotaxi 4")
+robotaxi4 = Robotaxi(*(city.start), city, "ucs")
 
