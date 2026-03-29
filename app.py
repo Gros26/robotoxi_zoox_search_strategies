@@ -18,6 +18,14 @@ class Node():
         self.passengers = set()
         self.accumulated_cost = 0
 
+    def clone(self):
+        new_node = Node(self.row, self.column)
+        new_node.parent = self.parent
+        new_node.operator = self.operator
+        new_node.passengers = self.passengers
+        new_node.accumulated_cost = self.accumulated_cost
+        return new_node
+
     def get_state(self):
         return (self.row, self.column, frozenset(self.passengers))
 
@@ -80,6 +88,7 @@ class City():
     
         self.goal = (self.goal_destination[0], self.goal_destination[1], set(self.passengers))
 
+
     def print(self):
         print()
         for i in range(self.height):
@@ -99,7 +108,7 @@ class City():
             print()
         print()
 
-             
+node1 = Node(2,0)        
 
 class Robotaxi():
     def __init__(self, y, x, city, search=None):
@@ -108,6 +117,7 @@ class Robotaxi():
         self.city = city
         self.matrix = city.matrix
         self.update_sensors()
+        self.h(node1)
         if search:
             match search:
                 case "bfs":
@@ -116,6 +126,7 @@ class Robotaxi():
                     return self.dfs()
                 case "ucs":
                     return self.ucs()
+        
 
     def position(self):
         return (self.row, self.column)
@@ -381,7 +392,34 @@ class Robotaxi():
 
         return route
 
+    #h(n)
+    def h(self, ref_node: Node):
+        #The idea is the sum of the distances from the car to the passengers and then to the destination
+        #i'm going to make a basic implementation, but this can be better if we select the passenger nearest to the car in each iteration
+        node = ref_node.clone()
+        goal_passengers = self.city.passengers
+        _, _, passengers = node.get_state()
+        heuristic = 0
 
+        for passenger in goal_passengers:
+            if passenger not in passengers:
+                goal_row, goal_column = passenger
+                heuristic += self.manhattan_distance(node.row, node.column, goal_row, goal_column)
+                node.row = goal_row
+                node.column = goal_column
+        heuristic += self.manhattan_distance(node.row, node.column, *(self.city.goal_destination))
+
+
+
+    def manhattan_distance(self, init_row, init_column, goal_row, goal_column):
+        return abs(init_row - goal_row) + abs(init_column - goal_column)
+
+
+
+    
+
+
+#verify that the matrix is ​​not modified after execution it must always be the same
 
 city = City("city1.txt")
 print(city.matrix)
