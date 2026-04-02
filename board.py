@@ -1,10 +1,10 @@
 import pygame
 
 class Board:
-    def __init__(self, width, height):
+    def __init__(self, width, height, matrix):
         self.width = width
         self.height = height
-        self.board = [[0] * width for _ in range(height)] #this returns a 2d array, each cell will contain 0
+        self.board = matrix
 
     def set_view(self, left, top, cell_size):
         self.left = left #position where init the board
