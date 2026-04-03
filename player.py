@@ -2,23 +2,24 @@ import pygame
 
 class Player:
 
-    def __init__(self, x, y):
+    def __init__(self, y, x, board):
         self.x = x
         self.y = y
+        self.board = board
 
-    def move(self, dx, dy, board):
+    def move(self, dx, dy):
         new_x = self.x + dx
         new_y = self.y + dy
 
-        if board.grid[new_y][new_x] != 1:
+        if self.board.grid[new_y][new_x] != 1:
             self.x = new_x
             self.y = new_y
 
     def draw(self, screen, tile_size):
 
         rect = pygame.Rect(
-            self.x * tile_size,
-            self.y * tile_size,
+            self.x * tile_size + self.board.left,
+            self.y * tile_size + self.board.top,
             tile_size,
             tile_size
         )

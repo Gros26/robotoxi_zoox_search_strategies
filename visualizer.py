@@ -21,7 +21,7 @@ board = board.Board(10, 10, city.matrix)
 board.set_view(150, 100, 50)
 
 #create the player
-player = player.Player(2,0)
+player = player.Player(2, 0, board)
 
 #game loop
 run = True
@@ -30,7 +30,7 @@ while run:
 
     #render the grid
     board.render(SCREEN)
-    player.draw(SCREEN, 30)
+    player.draw(SCREEN, 50)
 
     #event handler
     for event in pygame.event.get():
