@@ -316,7 +316,8 @@ class Robotaxi():
 
             if node_to_expand.get_state() == self.city.goal:
                 print(self.get_route(node_to_expand)) #Improvement: here it can return the node, and then in the function call we use this returned node
-                return print(f"Lo encontrooooo: {node_to_expand.get_state()}, expandio {count} nodos")
+                print(f"Lo encontrooooo: {node_to_expand.get_state()}, expandio {count} nodos")
+                return node_to_expand
 
             if node_to_expand.get_position() in self.city.passengers:
                 node_to_expand.passengers.add(node_to_expand.get_position())
@@ -579,7 +580,7 @@ class Robotaxi():
 
 
 #verify that the matrix is ​​not modified after execution it must always be the same
-
+""" 
 city = City("city1.txt")
 print(city.matrix)
 city.print()
@@ -596,3 +597,4 @@ robotaxi5 = Robotaxi(*(city.start), city, "gs")
 print("Robotaxi 6")
 robotaxi5 = Robotaxi(*(city.start), city, "a_star")
 
+"""

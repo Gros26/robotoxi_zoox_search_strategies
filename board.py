@@ -4,7 +4,8 @@ class Board:
     def __init__(self, width, height, matrix):
         self.width = width
         self.height = height
-        self.board = matrix
+        self.board = [[0]*width for _ in range(height)]
+        self.matrix = matrix
 
     def set_view(self, left, top, cell_size):
         self.left = left #position where init the board

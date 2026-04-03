@@ -8,12 +8,14 @@ class Player:
         self.board = board
 
     def move(self, dx, dy):
-        new_x = self.x + dx
-        new_y = self.y + dy
+        # new_x = self.x + dx
+        # new_y = self.y + dy
 
-        if self.board.grid[new_y][new_x] != 1:
-            self.x = new_x
-            self.y = new_y
+        # if self.board.board[new_y][new_x] != 1:
+        #     self.x = new_x
+        #     self.y = new_y
+        self.x = self.x + dx
+        self.y = self.y + dy
 
     def draw(self, screen, tile_size):
 
