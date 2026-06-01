@@ -2,6 +2,7 @@ import pygame
 import sys
 from pathlib import Path
 from search import City, Robotaxi, Node
+import time
 
 # Colors
 WHITE = (255, 255, 255)
@@ -39,18 +40,68 @@ class Button:
         return self.rect.collidepoint(mouse_pos)
 
 
-class AlgorithmScreen:
+class SearchTypeScreen:
     def __init__(self, screen_width, screen_height):
         self.width = screen_width
         self.height = screen_height
         self.font_title = pygame.font.Font(None, 48)
         self.font_button = pygame.font.Font(None, 28)
         
-        self.algorithms = ["BFS", "DFS", "UCS", "Greedy Search", "A*"]
+        self.search_types = ["No Informada", "Informada"]
+        self.buttons = []
+        self.selected_type = None
+        
+        button_width = 250
+        button_height = 60
+        start_y = 250
+        button_spacing = 120
+        
+        for i, search_type in enumerate(self.search_types):
+            x = (screen_width - button_width) // 2
+            y = start_y + i * button_spacing
+            self.buttons.append(Button(x, y, button_width, button_height, search_type, self.font_button))
+    
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEMOTION:
+            for button in self.buttons:
+                button.update(event.pos)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            for i, button in enumerate(self.buttons):
+                if button.is_clicked(event.pos):
+                    self.selected_type = self.search_types[i]
+                    return True
+        return False
+    
+    def draw(self, screen):
+        screen.fill(WHITE)
+        title = self.font_title.render("Tipo de Búsqueda", True, BLACK)
+        title_rect = title.get_rect(center=(self.width // 2, 80))
+        screen.blit(title, title_rect)
+        
+        for button in self.buttons:
+            button.draw(screen)
+
+
+class AlgorithmScreen:
+    def __init__(self, screen_width, screen_height, search_type):
+        self.width = screen_width
+        self.height = screen_height
+        self.font_title = pygame.font.Font(None, 48)
+        self.font_button = pygame.font.Font(None, 28)
+        self.search_type = search_type
+        
+        # Seleccionar algoritmos según el tipo de búsqueda
+        if search_type == "No Informada":
+            self.algorithms = ["Amplitud (BFS)", "Costo uniforme (UCS)", "Profundidad evitando ciclos (DFS)"]
+            self.algorithm_codes = ["bfs", "ucs", "dfs"]
+        else:  # Informada
+            self.algorithms = ["Avara (Greedy)", "A*"]
+            self.algorithm_codes = ["gs", "a_star"]
+        
         self.buttons = []
         self.selected_algorithm = None
         
-        button_width = 200
+        button_width = 250
         button_height = 50
         start_y = 200
         button_spacing = 80
@@ -67,14 +118,17 @@ class AlgorithmScreen:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             for i, button in enumerate(self.buttons):
                 if button.is_clicked(event.pos):
-                    self.selected_algorithm = self.algorithms[i]
+                    self.selected_algorithm = self.algorithm_codes[i]
                     return True
         return False
     
     def draw(self, screen):
         screen.fill(WHITE)
+        title_type = pygame.font.Font(None, 32).render(f"Búsqueda: {self.search_type}", True, DARK_GRAY)
+        screen.blit(title_type, (50, 40))
+        
         title = self.font_title.render("Selecciona un Algoritmo", True, BLACK)
-        title_rect = title.get_rect(center=(self.width // 2, 80))
+        title_rect = title.get_rect(center=(self.width // 2, 120))
         screen.blit(title, title_rect)
         
         for button in self.buttons:
@@ -157,24 +211,20 @@ class VisualizationScreen:
         self.nodes_expanded = 0
         self.total_cost = 0
         self.passengers_collected = set()
+        self.execution_time = 0
+        self.tree_depth = 0
         
+        self.start_time = time.time()
         self.execute_algorithm()
+        self.execution_time = time.time() - self.start_time
+        
+        # Calcular profundidad del árbol
+        if self.route:
+            self.tree_depth = len(self.route) - 1
     
     def execute_algorithm(self):
         """Ejecuta el algoritmo y obtiene la ruta"""
-        algo_map = {
-            "BFS": "bfs",
-            "DFS": "dfs",
-            "UCS": "ucs",
-            "Greedy Search": "gs",
-            "A*": "a_star"
-        }
-        
         try:
-            # Crear una copia de la ciudad para no modificar la original
-            robotaxi = Robotaxi(*(self.city.start), self.city, algo_map[self.algorithm])
-            # Si llegó aquí sin excepción, obtener ruta del resultado
-            # Nota: los métodos actuales solo imprimen, necesitamos modificarlos
             self.get_route_from_search()
         except Exception as e:
             print(f"Error: {e}")
@@ -185,11 +235,11 @@ class VisualizationScreen:
         import heapq
         
         algo_map = {
-            "BFS": "bfs",
-            "DFS": "dfs",
-            "UCS": "ucs",
-            "Greedy Search": "gs",
-            "A*": "a_star"
+            "bfs": "bfs",
+            "dfs": "dfs",
+            "ucs": "ucs",
+            "gs": "gs",
+            "a_star": "a_star"
         }
         
         algo = algo_map[self.algorithm]
@@ -442,6 +492,10 @@ class VisualizationScreen:
         info_x = self.map_x + self.city.width * self.cell_size + 50
         self.draw_info(screen, info_x)
         
+        # Mostrar reporte si está completado
+        if self.finished:
+            self.draw_report(screen)
+        
         # Instrucciones
         font_small = pygame.font.Font(None, 18)
         instructions = [
@@ -528,6 +582,48 @@ class VisualizationScreen:
             surface = font.render(text, True, BLACK)
             screen.blit(surface, (x, y))
             y += 40
+    
+    def draw_report(self, screen):
+        """Dibuja un panel de reporte con las estadísticas finales"""
+        report_width = 350
+        report_height = 280
+        report_x = (self.width - report_width) // 2
+        report_y = (self.height - report_height) // 2
+        
+        # Fondo del reporte
+        pygame.draw.rect(screen, WHITE, (report_x, report_y, report_width, report_height))
+        pygame.draw.rect(screen, BLACK, (report_x, report_y, report_width, report_height), 3)
+        
+        # Título
+        font_title = pygame.font.Font(None, 32)
+        title = font_title.render("REPORTE FINAL", True, BLACK)
+        title_rect = title.get_rect(center=(report_x + report_width // 2, report_y + 20))
+        screen.blit(title, title_rect)
+        
+        # Contenido del reporte
+        font_text = pygame.font.Font(None, 20)
+        y_offset = report_y + 60
+        line_spacing = 35
+        
+        report_data = [
+            f"Nodos expandidos: {self.nodes_expanded}",
+            f"Profundidad del árbol: {self.tree_depth}",
+            f"Tiempo de cómputo: {self.execution_time:.4f}s",
+        ]
+        
+        # Agregar costo si es algoritmo de costo o A*
+        if self.algorithm in ["ucs", "a_star"]:
+            report_data.append(f"Costo de solución: {self.total_cost}")
+        
+        for i, line in enumerate(report_data):
+            text = font_text.render(line, True, BLACK)
+            screen.blit(text, (report_x + 20, y_offset + i * line_spacing))
+        
+        # Instrucción para cerrar
+        font_small = pygame.font.Font(None, 16)
+        close_text = font_small.render("Presiona ESC para volver al menú", True, DARK_GRAY)
+        close_rect = close_text.get_rect(center=(report_x + report_width // 2, report_y + report_height - 25))
+        screen.blit(close_text, close_rect)
 
 
 class App:
@@ -540,8 +636,9 @@ class App:
         self.clock = pygame.time.Clock()
         self.running = True
         
-        self.state = "algorithm"  # algorithm, map, visualization
-        self.algorithm_screen = AlgorithmScreen(self.screen_width, self.screen_height)
+        self.state = "search_type"  # search_type, algorithm, map, visualization
+        self.search_type_screen = SearchTypeScreen(self.screen_width, self.screen_height)
+        self.algorithm_screen = None
         self.map_screen = None
         self.visualization_screen = None
     
@@ -550,7 +647,13 @@ class App:
             if event.type == pygame.QUIT:
                 self.running = False
             
-            if self.state == "algorithm":
+            if self.state == "search_type":
+                if self.search_type_screen.handle_event(event):
+                    self.state = "algorithm"
+                    self.algorithm_screen = AlgorithmScreen(self.screen_width, self.screen_height, 
+                                                           self.search_type_screen.selected_type)
+            
+            elif self.state == "algorithm":
                 if self.algorithm_screen.handle_event(event):
                     self.state = "map"
                     self.map_screen = MapScreen(self.screen_width, self.screen_height)
@@ -568,13 +671,15 @@ class App:
             elif self.state == "visualization":
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        self.state = "algorithm"
-                        self.algorithm_screen = AlgorithmScreen(self.screen_width, self.screen_height)
+                        self.state = "search_type"
+                        self.search_type_screen = SearchTypeScreen(self.screen_width, self.screen_height)
                     else:
                         self.visualization_screen.handle_event(event)
     
     def draw(self):
-        if self.state == "algorithm":
+        if self.state == "search_type":
+            self.search_type_screen.draw(self.screen)
+        elif self.state == "algorithm":
             self.algorithm_screen.draw(self.screen)
         elif self.state == "map":
             self.map_screen.draw(self.screen)
